@@ -1,21 +1,28 @@
 import geopandas as gpd
 import pandas as pd
 import folium
+from folium.plugins import MarkerCluster
 
-# Load issues data
+# Загрузка данных о проблемах
 issues_df = pd.read_csv('sources/complete_issues_data.csv')
 
-# Load state boundaries and convert to web-friendly projection
+# Загрузка границ земель и преобразование в WGS84
 states = gpd.read_file("vg5000_12-31.gk3.shape.ebenen/vg5000_ebenen_1231/VG5000_LAN.shp")
 states_wgs84 = states.to_crs("EPSG:4326")
 
-# Count issues per state
+# Подсчёт проблем по землям
 issues_per_state = issues_df.groupby('state').size().reset_index(name='issue_count')
 
-# Merge with geodata
+# Объединение геоданных с данными о проблемах
 states_with_data = states_wgs84.merge(issues_per_state, left_on='GEN', right_on='state', how='left')
 
-# Create choropleth map
+# Преобразуем datetime-колонки в строки (если есть)
+states_with_data = states_with_data.copy()
+for col in states_with_data.columns:
+    if pd.api.types.is_datetime64_any_dtype(states_with_data[col]):
+        states_with_data[col] = states_with_data[col].astype(str)
+
+# Создание карты с хлороплетом
 m = folium.Map(location=[51.0, 10.0], zoom_start=6)
 
 folium.Choropleth(
@@ -30,8 +37,8 @@ folium.Choropleth(
     legend_name='Number of Issues'
 ).add_to(m)
 
-# Add tooltips
-folium.features.GeoJson(
+# Подсказки по регионам
+folium.GeoJson(
     states_with_data,
     name='State Info',
     tooltip=folium.features.GeoJsonTooltip(
@@ -41,29 +48,14 @@ folium.features.GeoJson(
     )
 ).add_to(m)
 
-m.save('germany_issues_choropleth.html')
-
-
-### Advanced: Combine Points with Boundaries
-
-# Create base map with state boundaries
-m = folium.Map(location=[51.0, 10.0], zoom_start=6)
-
-# Add state boundaries as base layer
-folium.GeoJson(
-    states_wgs84.to_json(),
-    style_function=lambda x: {
-        'fillColor': 'lightblue',
-        'color': 'black',
-        'weight': 1,
-        'fillOpacity': 0.1
-    }
-).add_to(m)
-
-# Add individual issues as markers on top
+# Добавление маркеров проблем с кластеризацией
 marker_cluster = MarkerCluster().add_to(m)
 for idx, row in issues_df.iterrows():
-    folium.Marker(
-        [row['latitude'], row['longitude']],
-        popup=f"{row['category']}: {row['description'][:50]}..."
-    ).add_to(marker_cluster)
+    if pd.notna(row.get('latitude')) and pd.notna(row.get('longitude')):
+        folium.Marker(
+            [row['latitude'], row['longitude']],
+            popup=f"{row.get('category', 'No category')}: {str(row.get('description', ''))[:50]}..."
+        ).add_to(marker_cluster)
+
+# Сохранение карты
+m.save('germany_issues_choropleth.html')
