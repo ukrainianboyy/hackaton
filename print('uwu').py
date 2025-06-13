@@ -2,6 +2,7 @@ import geopandas as gpd
 import pandas as pd
 import folium
 from folium.plugins import MarkerCluster
+from folium import IFrame
 
 # Загрузка данных о проблемах
 issues_df = pd.read_csv('sources/complete_issues_data.csv')
@@ -48,14 +49,28 @@ folium.GeoJson(
     )
 ).add_to(m)
 
-# Добавление маркеров проблем с кластеризацией
+# Добавление маркеров проблем с кастомными popup
 marker_cluster = MarkerCluster().add_to(m)
+
 for idx, row in issues_df.iterrows():
     if pd.notna(row.get('latitude')) and pd.notna(row.get('longitude')):
+        html = f"""
+            <div style="font-family:Arial, sans-serif; width:400px;">
+                <div style="font-weight:bold; font-size:14px; margin-bottom:5px;">
+                    {row.get('category', 'No category')}
+                </div>
+                <div style="font-size:13px; line-height:1.4;">
+                    {str(row.get('description', ''))}
+                </div>
+            </div>
+        """
+        iframe = IFrame(html, width=500, height=111)
+        popup = folium.Popup(iframe, max_width=500)
+
+
+
         folium.Marker(
             [row['latitude'], row['longitude']],
-            popup=f"{row.get('category', 'No category')}: {str(row.get('description', ''))[:50]}..."
+            popup=popup
         ).add_to(marker_cluster)
-
-# Сохранение карты
 m.save('germany_issues_choropleth.html')
