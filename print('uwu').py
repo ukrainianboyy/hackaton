@@ -6,7 +6,7 @@ import folium
 issues_df = pd.read_csv('sources/complete_issues_data.csv')
 
 # Load state boundaries and convert to web-friendly projection
-states = gpd.read_file("../public_data/vg5000_12-31.gk3.shape.ebenen/vg5000_ebenen_1231/VG5000_LAN.shp")
+states = gpd.read_file("vg5000_12-31.gk3.shape.ebenen/vg5000_ebenen_1231/VG5000_LAN.shp")
 states_wgs84 = states.to_crs("EPSG:4326")
 
 # Count issues per state
