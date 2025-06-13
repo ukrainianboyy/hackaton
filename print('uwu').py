@@ -3,7 +3,7 @@ import pandas as pd
 import folium
 
 # Load issues data
-issues_df = pd.read_csv('../data/challenge_2/complete_issues_data.csv')
+issues_df = pd.read_csv('sources/complete_issues_data.csv')
 
 # Load state boundaries and convert to web-friendly projection
 states = gpd.read_file("../public_data/vg5000_12-31.gk3.shape.ebenen/vg5000_ebenen_1231/VG5000_LAN.shp")
